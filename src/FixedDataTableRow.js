@@ -12,6 +12,8 @@
 
 'use strict';
 
+import _ from 'lodash'
+import FixedDataTableCell from 'FixedDataTableCell';
 import FixedDataTableCellGroup from 'FixedDataTableCellGroup';
 import FixedDataTableTranslateDOMPosition from 'FixedDataTableTranslateDOMPosition';
 import PropTypes from 'prop-types';
@@ -191,79 +193,14 @@ class FixedDataTableRowImpl extends React.Component {
       'public/fixedDataTableRow/even': (this.props.index % 2 === 0),
     });
     var fixedColumnsWidth = sumPropWidths(this.props.fixedColumns);
-    var fixedColumns =
-      <FixedDataTableCellGroup
-        key="fixed_cells"
-        isScrolling={this.props.isScrolling}
-        height={this.props.height}
-        cellGroupWrapperHeight={this.props.cellGroupWrapperHeight}
-        left={0}
-        width={fixedColumnsWidth}
-        zIndex={2}
-        columns={this.props.fixedColumns}
-        touchEnabled={this.props.touchEnabled}
-        onColumnResize={this.props.onColumnResize}
-        onColumnReorder={this.props.onColumnReorder}
-        onColumnReorderMove={this.props.onColumnReorderMove}
-        onColumnReorderEnd={this.props.onColumnReorderEnd}
-        isColumnReordering={this.props.isColumnReordering}
-        columnReorderingData={this.props.columnReorderingData}
-        rowHeight={this.props.height}
-        rowIndex={this.props.index}
-        isHeaderOrFooter={this.props.isHeaderOrFooter}
-        isRTL={this.props.isRTL}
-      />;
+    const fixedColumns = this._renderCellGroup(this.props.fixedColumns, 0, 0, fixedColumnsWidth, 'fixedLeft');
     var columnsLeftShadow = this._renderColumnsLeftShadow(fixedColumnsWidth);
     var fixedRightColumnsWidth = sumPropWidths(this.props.fixedRightColumns);
     var scrollbarOffset = this.props.showScrollbarY ? this.props.scrollbarYWidth : 0;
-    var fixedRightColumns = 
-      <FixedDataTableCellGroup
-        key="fixed_right_cells"
-        isScrolling={this.props.isScrolling}
-        height={this.props.height}
-        cellGroupWrapperHeight={this.props.cellGroupWrapperHeight}
-        offsetLeft={this.props.width - fixedRightColumnsWidth - scrollbarOffset}
-        width={fixedRightColumnsWidth}
-        zIndex={2}
-        columns={this.props.fixedRightColumns}
-        touchEnabled={this.props.touchEnabled}
-        onColumnResize={this.props.onColumnResize}
-        onColumnReorder={this.props.onColumnReorder}
-        onColumnReorderMove={this.props.onColumnReorderMove}
-        onColumnReorderEnd={this.props.onColumnReorderEnd}
-        isColumnReordering={this.props.isColumnReordering}
-        columnReorderingData={this.props.columnReorderingData}
-        rowHeight={this.props.height}
-        rowIndex={this.props.index}
-        isHeaderOrFooter={this.props.isHeaderOrFooter}
-        isRTL={this.props.isRTL}
-      />;
+    const fixedRightColumns = this._renderCellGroup(this.props.fixedRightColumns, this.props.width - fixedRightColumnsWidth - scrollbarOffset, 0, fixedRightColumnsWidth, 'fixedRight');
     var fixedRightColumnsShadow = fixedRightColumnsWidth ?
       this._renderFixedRightColumnsShadow(this.props.width - fixedRightColumnsWidth - scrollbarOffset - 5) : null;
-    var scrollableColumns =
-      <FixedDataTableCellGroup
-        key="scrollable_cells"
-        isScrolling={this.props.isScrolling}
-        height={this.props.height}
-        cellGroupWrapperHeight={this.props.cellGroupWrapperHeight}
-        align="right"
-        left={this.props.scrollLeft}
-        offsetLeft={fixedColumnsWidth}
-        width={this.props.width - fixedColumnsWidth - fixedRightColumnsWidth - scrollbarOffset}
-        zIndex={0}
-        columns={this.props.scrollableColumns}
-        touchEnabled={this.props.touchEnabled}
-        onColumnResize={this.props.onColumnResize}
-        onColumnReorder={this.props.onColumnReorder}
-        onColumnReorderMove={this.props.onColumnReorderMove}
-        onColumnReorderEnd={this.props.onColumnReorderEnd}
-        isColumnReordering={this.props.isColumnReordering}
-        columnReorderingData={this.props.columnReorderingData}
-        rowHeight={this.props.height}
-        rowIndex={this.props.index}
-        isHeaderOrFooter={this.props.isHeaderOrFooter}
-        isRTL={this.props.isRTL}
-      />;
+    const scrollableColumns = this._renderCellGroup(this.props.scrollableColumns, fixedColumnsWidth, this.props.scrollLeft, this.props.width - fixedColumnsWidth - fixedRightColumnsWidth, 'scrollable');
     var scrollableColumnsWidth = sumPropWidths(this.props.scrollableColumns);
     var columnsRightShadow = this._renderColumnsRightShadow(fixedColumnsWidth + scrollableColumnsWidth);
     var rowExpanded = this._getRowExpanded(subRowHeight);
@@ -324,6 +261,92 @@ class FixedDataTableRowImpl extends React.Component {
     );
   }
 
+
+  _renderCellGroup(columns, baseLeft, offsetLeft, cellGroupWidth, cellGroupName) {
+    if (_.isEmpty(columns)) {
+      return null;
+    }
+
+    const cells = Array(columns.length);
+    const isColumnReordering = this.props.isColumnReordering && columns.reduce(function (acc, column) {
+        return acc || this.props.columnReorderingData.columnKey === column.props.columnKey;
+      }, false);
+    let left = 0;
+
+    for (let j = 0; j < columns.length; j++) {
+      cells[j] = this._renderCell(j, columns, isColumnReordering, left, offsetLeft, cellGroupWidth, cellGroupName);
+      left += columns[j].props.width;
+    }
+
+    const style = { position: 'absolute', zIndex: cellGroupName === 'scrollable' ? 0 : 1 };
+    FixedDataTableTranslateDOMPosition(style, baseLeft - offsetLeft, 0, false, this.props.isRTL);
+
+    return (
+      <div style={style}>
+        {_.compact(cells)}
+      </div>
+    )
+  }
+
+  _renderCell(columnIndex, columns, isColumnReordering, left, offsetLeft, cellGroupWidth, cellGroupName) {
+    const {
+      height,
+      isScrolling,
+    } = this.props;
+    const rowIndex = this.props.index;
+
+    const columnProps = columns[columnIndex].props;
+    const { width } = columnProps;
+    const cellTemplate = columns[columnIndex].template;
+
+    // horizontal bounds check
+    const visible = (
+      (left + width >= offsetLeft && left - offsetLeft < cellGroupWidth)
+    );
+    const recycle = columnProps.allowCellsRecycling;
+
+    // if cell is recyclable then no need to render it into the DOM when it's not visible
+    if (recycle && !isColumnReordering && !visible) {
+      return null;
+    }
+    
+    const cellIsResizable = columnProps.isResizable && this.props.onColumnResize;
+    const onColumnResize = cellIsResizable ? this.props.onColumnResize : null;
+
+    const cellIsReorderable = columnProps.isReorderable && this.props.onColumnReorder && rowIndex === -1 && cellGroupWidth !== columnProps.width;
+    const onColumnReorder = cellIsReorderable ? this.props.onColumnReorder : null;
+
+    const className = columnProps.cellClassName;
+    const pureRendering = columnProps.pureRendering || false;
+
+    return (
+      <FixedDataTableCell
+        key={`${columnIndex}-${cellGroupName}`}
+        columnKey={columnProps.columnKey || columnIndex}
+        rowIndex={rowIndex}
+        cell={cellTemplate}
+        cellGroupWidth={cellGroupWidth}
+        isScrolling={isScrolling}
+        align={columnProps.align}
+        className={className}
+        columnReorderingData={this.props.columnReorderingData}
+        height={height}
+        isColumnReordering={isColumnReordering}
+        left={left}
+        maxWidth={columnProps.maxWidth}
+        minWidth={columnProps.minWidth}
+        onColumnResize={onColumnResize}
+        onColumnReorder={onColumnReorder}
+        onColumnReorderMove={this.props.onColumnReorderMove}
+        onColumnReorderEnd={this.props.onColumnReorderEnd}
+        pureRendering={pureRendering}
+        touchEnabled={this.props.touchEnabled}
+        width={columnProps.width}
+        visible={visible}
+      />
+    )
+  }
+
   _getRowExpanded = (/*number*/ subRowHeight) => /*?object*/ {
     if (this.props.rowExpanded) {
       var rowExpandedProps = {
@@ -344,6 +367,10 @@ class FixedDataTableRowImpl extends React.Component {
   };
 
   _renderColumnsLeftShadow = (/*number*/ left) => /*?object*/ {
+    if (this.props.scrollLeft === 0) {
+      return null;
+    }
+
     var className = cx({
       'fixedDataTableRowLayout/fixedColumnsDivider': left > 0,
       'fixedDataTableRowLayout/columnsShadow': this.props.scrollLeft > 0,
