@@ -263,32 +263,43 @@ class FixedDataTableRowImpl extends React.Component {
 
 
   _renderCellGroup(columns, baseLeft, offsetLeft, cellGroupWidth, cellGroupName) {
-    if (_.isEmpty(columns)) {
+    if (columns.length === 0) {
       return null;
     }
 
-    const cells = Array(columns.length);
+    const cells = new Array(columns.length);
     const isColumnReordering = this.props.isColumnReordering && columns.reduce(function (acc, column) {
         return acc || this.props.columnReorderingData.columnKey === column.props.columnKey;
       }, false);
     let left = 0;
 
     for (let j = 0; j < columns.length; j++) {
-      cells[j] = this._renderCell(j, columns, isColumnReordering, left, offsetLeft, cellGroupWidth, cellGroupName);
-      left += columns[j].props.width;
+      const recycle = columns[j].props.allowCellsRecycling;
+      const width = columns[j].props.width;
+      // horizontal bounds check
+      const visible = (
+        (left + width >= offsetLeft && left - offsetLeft < cellGroupWidth)
+      );
+
+      // if cell is recyclable then no need to render it into the DOM when it's not visible
+      if (!(recycle && !isColumnReordering) || visible) {
+        cells[j] = this._renderCell(j, columns, isColumnReordering, left, cellGroupWidth, cellGroupName);
+      }
+
+      left += width;
     }
 
-    const style = { position: 'absolute', zIndex: cellGroupName === 'scrollable' ? 0 : 1 };
+    const style = { position: 'absolute', zIndex: cellGroupName === 'scrollable' ? 0 : 1, backfaceVisibility: 'hidden' };
     FixedDataTableTranslateDOMPosition(style, baseLeft - offsetLeft, 0, false, this.props.isRTL);
 
     return (
       <div style={style}>
-        {_.compact(cells)}
+        {cells}
       </div>
     )
   }
 
-  _renderCell(columnIndex, columns, isColumnReordering, left, offsetLeft, cellGroupWidth, cellGroupName) {
+  _renderCell(columnIndex, columns, isColumnReordering, left, cellGroupWidth, cellGroupName) {
     const {
       height,
       isScrolling,
@@ -296,19 +307,7 @@ class FixedDataTableRowImpl extends React.Component {
     const rowIndex = this.props.index;
 
     const columnProps = columns[columnIndex].props;
-    const { width } = columnProps;
     const cellTemplate = columns[columnIndex].template;
-
-    // horizontal bounds check
-    const visible = (
-      (left + width >= offsetLeft && left - offsetLeft < cellGroupWidth)
-    );
-    const recycle = columnProps.allowCellsRecycling;
-
-    // if cell is recyclable then no need to render it into the DOM when it's not visible
-    if (recycle && !isColumnReordering && !visible) {
-      return null;
-    }
     
     const cellIsResizable = columnProps.isResizable && this.props.onColumnResize;
     const onColumnResize = cellIsResizable ? this.props.onColumnResize : null;
@@ -342,7 +341,6 @@ class FixedDataTableRowImpl extends React.Component {
         pureRendering={pureRendering}
         touchEnabled={this.props.touchEnabled}
         width={columnProps.width}
-        visible={visible}
       />
     )
   }
