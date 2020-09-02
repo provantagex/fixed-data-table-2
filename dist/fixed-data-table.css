@@ -85,17 +85,10 @@
   text-align: center;
 }
 
-.fixedDataTableCellLayout_wrap1 {
-  display: table;
-}
-
-.fixedDataTableCellLayout_wrap2 {
-  display: table-row;
-}
-
-.fixedDataTableCellLayout_wrap3 {
+.fixedDataTableCellLayout_wrap {
   display: table-cell;
   vertical-align: middle;
+  box-sizing: border-box;
 }
 
 .fixedDataTableCellLayout_columnResizerContainer {
