@@ -97,12 +97,11 @@
   background-color: #0284ff;
 }
 .public_fixedDataTableCell_hasReorderHandle .public_fixedDataTableCell_cellContent {
-  margin-left: 12px;
+  padding-left: 20px;
 }
 
 .fixedDataTable_isRTL .public_fixedDataTableCell_hasReorderHandle .public_fixedDataTableCell_cellContent {
-  margin-left: auto;
-  margin-right: 12px;
+  padding-right: 20px;
 }
 /**
  * Column reorder goodies.
