@@ -304,7 +304,7 @@ class FixedDataTableCell extends React.Component {
     const role = isHeaderOrFooter ? 'columnheader' : 'gridcell';
 
     return (
-      <div className={className} style={style} role={role}>
+      <div {...props} className={className} style={style} role={role}>
         {columnResizerComponent}
         {columnReorderComponent}
         {content}
