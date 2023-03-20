@@ -221,6 +221,19 @@ class FixedDataTableCell extends React.Component {
       isVisible,
       columnKey,
       isHeaderOrFooter,
+
+      isRTL,
+      touchEnabled,
+      rowIndex,
+      cell,
+      left,
+      align,
+      highlighted,
+      className,
+      lastChild,
+      onColumnResize,
+      onColumnReorder,
+
       ...props
     } = this.props;
 
@@ -229,38 +242,38 @@ class FixedDataTableCell extends React.Component {
       width,
     };
 
-    if (this.props.isRTL) {
-      style.right = props.left;
+    if (isRTL) {
+      style.right = left;
     } else {
-      style.left = props.left;
+      style.left = left;
     }
 
     if (this.state.isReorderingThisColumn) {
-      const DIR_SIGN = this.props.isRTL ? -1 : 1;
+      const DIR_SIGN = isRTL ? -1 : 1;
       style.transform = `translateX(${
         this.state.displacement * DIR_SIGN
       }px) translateZ(0)`;
       style.zIndex = 1;
     }
 
-    var className = joinClasses(
+    var classNames = joinClasses(
       cx({
         'fixedDataTableCellLayout/main': true,
-        'fixedDataTableCellLayout/lastChild': props.lastChild,
-        'fixedDataTableCellLayout/alignRight': props.align === 'right',
-        'fixedDataTableCellLayout/alignCenter': props.align === 'center',
-        'public/fixedDataTableCell/alignRight': props.align === 'right',
-        'public/fixedDataTableCell/highlighted': props.highlighted,
+        'fixedDataTableCellLayout/lastChild': lastChild,
+        'fixedDataTableCellLayout/alignRight': align === 'right',
+        'fixedDataTableCellLayout/alignCenter': align === 'center',
+        'public/fixedDataTableCell/alignRight': align === 'right',
+        'public/fixedDataTableCell/highlighted': highlighted,
         'public/fixedDataTableCell/main': true,
-        'public/fixedDataTableCell/hasReorderHandle': !!props.onColumnReorder,
+        'public/fixedDataTableCell/hasReorderHandle': !!onColumnReorder,
         'public/fixedDataTableCell/reordering': this.state
           .isReorderingThisColumn,
       }),
-      props.className
+      className
     );
 
     var columnResizerComponent;
-    if (props.onColumnResize) {
+    if (onColumnResize) {
       var columnResizerStyle = {
         height,
       };
@@ -270,10 +283,10 @@ class FixedDataTableCell extends React.Component {
           style={columnResizerStyle}
           onMouseDown={this._onColumnResizerMouseDown}
           onTouchStart={
-            this.props.touchEnabled ? this._onColumnResizerMouseDown : null
+            touchEnabled ? this._onColumnResizerMouseDown : null
           }
-          onTouchEnd={this.props.touchEnabled ? this._suppressEvent : null}
-          onTouchMove={this.props.touchEnabled ? this._suppressEvent : null}
+          onTouchEnd={touchEnabled ? this._suppressEvent : null}
+          onTouchMove={touchEnabled ? this._suppressEvent : null}
         >
           <div
             className={joinClasses(
@@ -287,12 +300,12 @@ class FixedDataTableCell extends React.Component {
     }
 
     var columnReorderComponent;
-    if (props.onColumnReorder) {
+    if (onColumnReorder) {
       //header row
       columnReorderComponent = (
         <FixedDataTableColumnReorderHandle
           columnKey={this.columnKey}
-          touchEnabled={this.props.touchEnabled}
+          touchEnabled={touchEnabled}
           onMouseDown={this._onColumnReorderMouseDown}
           onTouchStart={this._onColumnReorderMouseDown}
           height={height}
@@ -308,19 +321,19 @@ class FixedDataTableCell extends React.Component {
       isVisible,
     };
 
-    if (props.rowIndex >= 0) {
-      cellProps.rowIndex = props.rowIndex;
+    if (rowIndex >= 0) {
+      cellProps.rowIndex = rowIndex;
     }
 
     var content;
-    if (React.isValidElement(props.cell)) {
-      content = React.cloneElement(props.cell, cellProps);
-    } else if (typeof props.cell === 'function') {
-      content = props.cell(cellProps);
+    if (React.isValidElement(cell)) {
+      content = React.cloneElement(cell, cellProps);
+    } else if (typeof cell === 'function') {
+      content = cell(cellProps);
     } else {
       content = (
         <FixedDataTableCellDefaultDeprecated {...cellProps}>
-          {props.cell}
+          {cell}
         </FixedDataTableCellDefaultDeprecated>
       );
     }
@@ -328,7 +341,7 @@ class FixedDataTableCell extends React.Component {
     const role = isHeaderOrFooter ? 'columnheader' : 'gridcell';
 
     return (
-      <div className={className} style={style} role={role}>
+      <div {...props} className={classNames} style={style} role={role}>
         {columnResizerComponent}
         {columnReorderComponent}
         {content}
